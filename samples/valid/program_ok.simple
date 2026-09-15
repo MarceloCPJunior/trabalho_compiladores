@@ -1,7 +1,7 @@
 10 rem Example Program With Uppercase Allowed Here
 20 input a
-30 let b = a * (3 + 2)
-40 print b % 4
+30 let b = a * 3 + 2
+40 print b
 50 if b >= 10 goto 70
 60 goto 80
 70 print b

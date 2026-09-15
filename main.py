@@ -148,9 +148,7 @@ def tokenize_statement(source_line: SourceLine) -> list[Token]:
                 )
             continue
         if char in "()":
-            tokens.append(Token("PAREN", char, line_number))
-            index += 1
-            continue
+            raise AnalysisError(line_number, "parentheses are not allowed in SIMPLE expressions")
         if char in "+-*/%":
             tokens.append(Token("ARITH", char, line_number))
             index += 1
@@ -222,7 +220,8 @@ class Analyzer:
             stream.ensure_finished()
             return
         if command == "print":
-            self.parse_expression(stream)
+            variable = stream.expect("IDENT").value
+            self.variables.add(variable)
             stream.ensure_finished()
             return
         if command == "goto":
@@ -275,12 +274,7 @@ class Analyzer:
         if token.kind == "IDENT":
             self.variables.add(stream.advance().value)
             return
-        if token.kind == "PAREN" and token.value == "(":
-            stream.advance()
-            self.parse_expression(stream)
-            stream.expect("PAREN", ")")
-            return
-        raise AnalysisError(stream.line_number, f"expected number, variable or parenthesized expression, found '{token.value}'")
+        raise AnalysisError(stream.line_number, f"expected number or variable, found '{token.value}'")
 
     def validate_gotos(self) -> None:
         for line_number, target in self.goto_targets:
