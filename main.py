@@ -111,6 +111,8 @@ def tokenize_statement(source_line: SourceLine) -> list[Token]:
     command = text[:first_word_end]
     if not command:
         raise AnalysisError(line_number, "missing command")
+    if first_word_end < len(text) and not text[first_word_end].isspace():
+        raise AnalysisError(line_number, f"expected whitespace after command '{command}'")
     if command not in KEYWORDS:
         raise AnalysisError(line_number, f"unknown command '{command}'")
     if command == "rem":
@@ -134,7 +136,7 @@ def tokenize_statement(source_line: SourceLine) -> list[Token]:
             continue
         if char.islower():
             start = index
-            while index < len(text) and text[index].islower():
+            while index < len(text) and text[index].isalnum():
                 index += 1
             word = text[start:index]
             if word in KEYWORDS:
@@ -185,6 +187,9 @@ class Analyzer:
         self.line_numbers: set[int] = set()
 
     def analyze(self, source: str) -> str:
+        self.variables = set()
+        self.goto_targets = []
+        self.line_numbers = set()
         program = parse_source(source)
         self.line_numbers = {source_line.line_number for source_line in program}
 
@@ -222,7 +227,8 @@ class Analyzer:
         if command == "print":
             variable = stream.expect("IDENT").value
             self.variables.add(variable)
-            stream.ensure_finished()
+            if stream.peek() is not None:
+                raise AnalysisError(stream.line_number, "print accepts only a single variable")
             return
         if command == "goto":
             target = int(stream.expect("NUMBER").value)
@@ -231,6 +237,11 @@ class Analyzer:
             return
         if command == "if":
             self.parse_expression(stream)
+            if stream.peek() is not None and stream.peek().kind == "ASSIGN":
+                raise AnalysisError(
+                    stream.line_number,
+                    "'=' is only valid for assignment; use '==' in conditions",
+                )
             relational = stream.expect("RELOP")
             if relational.value not in RELATIONAL_OPERATORS:
                 raise AnalysisError(stream.line_number, f"invalid relational operator '{relational.value}'")
