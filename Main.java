@@ -216,6 +216,11 @@ public class Main {
             if (token == null) {
                 throw new AnalysisException(stream.lineNumber, "expected expression");
             }
+            if (token.kind == TokenKind.ARITH && (token.value.equals("+") || token.value.equals("-"))) {
+                stream.advance();
+                parseFactor(stream);
+                return;
+            }
             if (token.kind == TokenKind.NUMBER) {
                 stream.advance();
                 return;
