@@ -14,6 +14,7 @@ public class Main {
     private static final Set<String> KEYWORDS = Set.of("rem", "input", "let", "print", "goto", "if", "end");
     private static final Set<String> RELATIONAL_OPERATORS = Set.of(">", ">=", "<", "<=", "==", "!=");
     private static final Pattern SOURCE_LINE_PATTERN = Pattern.compile("^\\s*(\\d+)(?:\\s+(.*))?$");
+    private static final Pattern DIGITS_PATTERN = Pattern.compile("\\d+");
 
     private enum TokenKind {
         KEYWORD,
@@ -460,6 +461,9 @@ public class Main {
     }
 
     private static int parseCheckedInteger(String value, int lineNumber, String description) throws AnalysisException {
+        if (!DIGITS_PATTERN.matcher(value).matches()) {
+            throw new AnalysisException(lineNumber, describeNumericField(description) + " '" + value + "' é inválido");
+        }
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException error) {

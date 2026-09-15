@@ -32,6 +32,8 @@ chmod +x validate_samples.sh
 ./validate_samples.sh
 ```
 
+O script deve ser executado com **Bash**.
+
 ## Regras validadas
 
 - cada linha deve começar com um número inteiro;
