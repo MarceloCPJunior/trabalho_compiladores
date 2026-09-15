@@ -123,7 +123,7 @@ public class Main {
 
             validateGotos();
 
-            String variableList = variables.isEmpty() ? "(none)" : String.join(", ", variables);
+            String variableList = variables.isEmpty() ? "(nenhuma)" : String.join(", ", variables);
             return "Análise concluída com sucesso.\n"
                 + "Instruções: " + program.size() + "\n"
                 + "Variáveis: " + variableList;
@@ -434,7 +434,7 @@ public class Main {
 
     private static String readSource(String[] args) throws InputReadException {
         if (args.length > 1) {
-            throw new IllegalArgumentException("Uso: java Main [arquivo.simple]");
+            throw new IllegalArgumentException("Uso: java Main [arquivo.simple | -]");
         }
         if (args.length == 1 && !args[0].equals("-")) {
             try {

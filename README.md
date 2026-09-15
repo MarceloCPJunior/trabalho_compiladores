@@ -53,6 +53,7 @@ chmod +x validate_samples.sh
 ### Programa válido
 
 - `samples/valid/program_ok.simple`
+- saída esperada: `samples/valid/program_ok.expected`
 
 ### Inconsistências exigidas
 

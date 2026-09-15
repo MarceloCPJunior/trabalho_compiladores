@@ -6,7 +6,12 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 javac Main.java
-java Main samples/valid/program_ok.simple
+valid_output="$(mktemp)"
+trap 'rm -f "$valid_output"' EXIT
+java Main samples/valid/program_ok.simple >"$valid_output"
+diff -u samples/valid/program_ok.expected "$valid_output"
+rm -f "$valid_output"
+trap - EXIT
 
 for sample in samples/invalid/*.simple; do
   output_file="$(mktemp)"
