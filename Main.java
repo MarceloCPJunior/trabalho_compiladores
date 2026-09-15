@@ -442,7 +442,7 @@ public class Main {
 
     private static String readSource(String[] args) throws InputReadException {
         if (args.length > 1) {
-            throw new IllegalArgumentException("Uso: java Main [arquivo.simple | -]");
+            throw new IllegalArgumentException("Uso: java Main [arquivo.simple | -] (sem argumentos extras)");
         }
         if (args.length == 1 && !args[0].equals("-")) {
             try {

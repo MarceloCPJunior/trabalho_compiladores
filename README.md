@@ -9,6 +9,8 @@ javac Main.java
 java Main samples/valid/program_ok.simple
 ```
 
+Os comandos acima não aceitam argumentos extras além do arquivo opcional ou de `-`.
+
 Também é possível enviar o código-fonte pela entrada padrão:
 
 ```bash

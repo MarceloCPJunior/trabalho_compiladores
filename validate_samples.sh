@@ -8,6 +8,16 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 
 cd "$REPO_DIR"
 
+command -v javac >/dev/null 2>&1 || {
+  echo "Erro: javac não está disponível no PATH." >&2
+  exit 1
+}
+
+command -v java >/dev/null 2>&1 || {
+  echo "Erro: java não está disponível no PATH." >&2
+  exit 1
+}
+
 javac Main.java
 valid_output="$TMP_DIR/program_ok.out"
 java Main samples/valid/program_ok.simple >"$valid_output"
