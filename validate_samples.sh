@@ -10,7 +10,10 @@ java Main samples/valid/program_ok.simple
 for sample in samples/invalid/*.simple; do
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' EXIT
-  java Main "$sample" >"$output_file" 2>&1 || true
+  if java Main "$sample" >"$output_file" 2>&1; then
+    echo "Expected failure for invalid sample: $sample" >&2
+    exit 1
+  fi
   diff -u "${sample%.simple}.expected" "$output_file"
   rm -f "$output_file"
   trap - EXIT

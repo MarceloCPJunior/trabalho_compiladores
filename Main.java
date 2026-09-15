@@ -267,8 +267,10 @@ public class Main {
 
             int lineNumber = parseCheckedInteger(lineNumberText, physicalLine + 1, "line number");
             if (previousLineNumber != null && lineNumber <= previousLineNumber) {
-                throw new AnalysisException(lineNumber,
-                    "line numbers must be strictly increasing (previous was " + previousLineNumber + ")");
+                throw new AnalysisException(
+                    physicalLine + 1,
+                    "line number " + lineNumber + " must be strictly increasing (previous was " + previousLineNumber + ")"
+                );
             }
 
             String statement = separator == -1 ? "" : trimmedLeft.substring(separator).trim();
