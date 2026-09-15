@@ -111,12 +111,18 @@ def tokenize_statement(source_line: SourceLine) -> list[Token]:
     command = text[:first_word_end]
     if not command:
         raise AnalysisError(line_number, "missing command")
-    if first_word_end < len(text) and not text[first_word_end].isspace():
-        raise AnalysisError(line_number, f"expected whitespace after command '{command}'")
     if command not in KEYWORDS:
         raise AnalysisError(line_number, f"unknown command '{command}'")
     if command == "rem":
+        if first_word_end < len(text) and text[first_word_end].isalnum():
+            if text[first_word_end].isupper():
+                raise AnalysisError(line_number, "uppercase letters are only allowed inside rem comments")
+            raise AnalysisError(line_number, f"expected whitespace after command '{command}'")
         return [Token("KEYWORD", "rem", line_number)]
+    if first_word_end < len(text) and text[first_word_end].isalnum():
+        if text[first_word_end].isupper():
+            raise AnalysisError(line_number, "uppercase letters are only allowed inside rem comments")
+        raise AnalysisError(line_number, f"expected whitespace after command '{command}'")
 
     tokens: list[Token] = [Token("KEYWORD", command, line_number)]
     index = first_word_end

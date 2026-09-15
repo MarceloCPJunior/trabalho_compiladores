@@ -43,11 +43,8 @@ python3 main.py < samples/valid/program_ok.simple
 3. `if` sem `goto`: `samples/invalid/03_missing_goto.simple`
 4. desvio para linha inexistente: `samples/invalid/04_invalid_target.simple`
 5. uso indevido de parênteses: `samples/invalid/05_parentheses_not_allowed.simple`
+6. `print` com expressão em vez de variável: `samples/invalid/06_print_requires_variable.simple`
+7. números de linha fora de ordem crescente: `samples/invalid/07_non_increasing_lines.simple`
+8. linha sem comando após o número: `samples/invalid/08_missing_command.simple`
 
 Cada caso possui um arquivo `.expected` com a saída esperada.
-
-### Outros casos de validação
-
-- `print` com expressão em vez de variável: `samples/invalid/06_print_requires_variable.simple`
-- números de linha fora de ordem crescente: `samples/invalid/07_non_increasing_lines.simple`
-- linha sem comando após o número: `samples/invalid/08_missing_command.simple`
