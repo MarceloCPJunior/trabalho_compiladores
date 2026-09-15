@@ -286,6 +286,10 @@ public class Main {
         if (command.isEmpty()) {
             throw new AnalysisException(lineNumber, "missing command");
         }
+        String attachedKeyword = findAttachedKeyword(command);
+        if (attachedKeyword != null) {
+            throw new AnalysisException(lineNumber, "expected whitespace after command '" + attachedKeyword + "'");
+        }
         if (!KEYWORDS.contains(command)) {
             throw new AnalysisException(lineNumber, "unknown command '" + command + "'");
         }
@@ -435,6 +439,15 @@ public class Main {
             }
         }
         return true;
+    }
+
+    private static String findAttachedKeyword(String command) {
+        for (String keyword : KEYWORDS) {
+            if (command.startsWith(keyword) && command.length() > keyword.length()) {
+                return keyword;
+            }
+        }
+        return null;
     }
 
     public static void main(String[] args) {

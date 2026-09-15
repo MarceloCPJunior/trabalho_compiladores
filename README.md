@@ -16,6 +16,13 @@ javac Main.java
 java Main < samples/valid/program_ok.simple
 ```
 
+## Validar os exemplos do repositório
+
+```bash
+chmod +x validate_samples.sh
+./validate_samples.sh
+```
+
 ## Regras validadas
 
 - cada linha deve começar com um número inteiro;
