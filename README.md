@@ -1,17 +1,19 @@
 # trabalho_compiladores
 
-Analisador léxico, sintático e semântico para a linguagem SIMPLE, pensado para execução direta no GDB Online com Python 3.
+Analisador léxico, sintático e semântico para a linguagem SIMPLE, pensado para execução direta no GDB Online com Java puro.
 
 ## Como executar
 
 ```bash
-python3 main.py samples/valid/program_ok.simple
+javac Main.java
+java Main samples/valid/program_ok.simple
 ```
 
 Também é possível enviar o código-fonte pela entrada padrão:
 
 ```bash
-python3 main.py < samples/valid/program_ok.simple
+javac Main.java
+java Main < samples/valid/program_ok.simple
 ```
 
 ## Regras validadas
