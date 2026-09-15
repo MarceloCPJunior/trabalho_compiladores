@@ -259,11 +259,18 @@ public class Main {
         List<SourceLine> lines = new ArrayList<>();
         Integer previousLineNumber = null;
         String[] rawLines = source.split("\\R", -1);
+        Integer blankLineInsideProgram = null;
 
         for (int physicalLine = 0; physicalLine < rawLines.length; physicalLine++) {
             String rawLine = rawLines[physicalLine];
             if (rawLine.trim().isEmpty()) {
+                if (!lines.isEmpty()) {
+                    blankLineInsideProgram = physicalLine + 1;
+                }
                 continue;
+            }
+            if (blankLineInsideProgram != null) {
+                throw new AnalysisException(blankLineInsideProgram, "linhas em branco não são permitidas entre instruções");
             }
 
             Matcher matcher = SOURCE_LINE_PATTERN.matcher(rawLine);

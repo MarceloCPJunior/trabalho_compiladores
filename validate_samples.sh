@@ -13,6 +13,14 @@ valid_output="$TMP_DIR/program_ok.out"
 java Main samples/valid/program_ok.simple >"$valid_output"
 diff -u samples/valid/program_ok.expected "$valid_output"
 
+stdin_output="$TMP_DIR/program_ok_stdin.out"
+java Main < samples/valid/program_ok.simple >"$stdin_output"
+diff -u samples/valid/program_ok.expected "$stdin_output"
+
+stdin_dash_output="$TMP_DIR/program_ok_stdin_dash.out"
+java Main - < samples/valid/program_ok.simple >"$stdin_dash_output"
+diff -u samples/valid/program_ok.expected "$stdin_dash_output"
+
 for sample in samples/invalid/*.simple; do
   output_file="$TMP_DIR/$(basename "${sample%.simple}").out"
   if java Main "$sample" >"$output_file" 2>&1; then

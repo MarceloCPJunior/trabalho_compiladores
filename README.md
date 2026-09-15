@@ -37,6 +37,7 @@ O script deve ser executado com **Bash**.
 ## Regras validadas
 
 - cada linha deve começar com um número inteiro;
+- linhas em branco no meio do programa não são permitidas;
 - os números das linhas devem estar em ordem estritamente crescente;
 - comandos válidos: `rem`, `input`, `let`, `print`, `goto`, `if ... goto`, `end`;
 - letras maiúsculas geram erro fora de comentários `rem`;
