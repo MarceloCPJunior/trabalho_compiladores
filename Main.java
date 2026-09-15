@@ -14,6 +14,7 @@ public class Main {
 
     private enum TokenKind {
         KEYWORD,
+        COMMENT,
         IDENT,
         NUMBER,
         ASSIGN,
@@ -24,6 +25,12 @@ public class Main {
     private static final class AnalysisException extends Exception {
         AnalysisException(int lineNumber, String message) {
             super("Line " + lineNumber + ": " + message);
+        }
+    }
+
+    private static final class InputReadException extends Exception {
+        InputReadException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 
@@ -124,6 +131,9 @@ public class Main {
 
             switch (command) {
                 case "rem":
+                    if (stream.peek() != null) {
+                        stream.expect(TokenKind.COMMENT, null);
+                    }
                     stream.ensureFinished();
                     return;
                 case "input":
@@ -143,7 +153,11 @@ public class Main {
                     }
                     return;
                 case "goto":
-                    gotoTargets.add(new GotoTarget(stream.lineNumber, Integer.parseInt(stream.expect(TokenKind.NUMBER, null).value)));
+                    gotoTargets.add(new GotoTarget(stream.lineNumber, parseCheckedInteger(
+                        stream.expect(TokenKind.NUMBER, null).value,
+                        stream.lineNumber,
+                        "goto target"
+                    )));
                     stream.ensureFinished();
                     return;
                 case "if":
@@ -157,7 +171,11 @@ public class Main {
                     }
                     parseExpression(stream);
                     stream.expect(TokenKind.KEYWORD, "goto");
-                    gotoTargets.add(new GotoTarget(stream.lineNumber, Integer.parseInt(stream.expect(TokenKind.NUMBER, null).value)));
+                    gotoTargets.add(new GotoTarget(stream.lineNumber, parseCheckedInteger(
+                        stream.expect(TokenKind.NUMBER, null).value,
+                        stream.lineNumber,
+                        "goto target"
+                    )));
                     stream.ensureFinished();
                     return;
                 case "end":
@@ -247,7 +265,7 @@ public class Main {
                 throw new AnalysisException(physicalLine + 1, "statement must start with a numeric line number");
             }
 
-            int lineNumber = Integer.parseInt(lineNumberText);
+            int lineNumber = parseCheckedInteger(lineNumberText, physicalLine + 1, "line number");
             if (previousLineNumber != null && lineNumber <= previousLineNumber) {
                 throw new AnalysisException(lineNumber,
                     "line numbers must be strictly increasing (previous was " + previousLineNumber + ")");
@@ -301,7 +319,11 @@ public class Main {
                 }
                 throw new AnalysisException(lineNumber, "expected whitespace after command '" + command + "'");
             }
-            return List.of(new Token(TokenKind.KEYWORD, "rem"));
+            String comment = firstWordEnd >= text.length() ? "" : text.substring(firstWordEnd).stripLeading();
+            if (comment.isEmpty()) {
+                return List.of(new Token(TokenKind.KEYWORD, "rem"));
+            }
+            return List.of(new Token(TokenKind.KEYWORD, "rem"), new Token(TokenKind.COMMENT, comment));
         }
         if (firstWordEnd < text.length() && Character.isLetterOrDigit(text.charAt(firstWordEnd))) {
             char next = text.charAt(firstWordEnd);
@@ -402,14 +424,22 @@ public class Main {
         return tokens;
     }
 
-    private static String readSource(String[] args) throws IOException {
+    private static String readSource(String[] args) throws InputReadException {
         if (args.length > 1) {
             throw new IllegalArgumentException("Usage: java Main [source.simple]");
         }
-        if (args.length == 1) {
-            return Files.readString(Path.of(args[0]), StandardCharsets.UTF_8);
+        if (args.length == 1 && !args[0].equals("-")) {
+            try {
+                return Files.readString(Path.of(args[0]), StandardCharsets.UTF_8);
+            } catch (IOException error) {
+                throw new InputReadException("Error: could not open '" + args[0] + "'", error);
+            }
         }
-        return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+        try {
+            return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new InputReadException("Error: could not read standard input", error);
+        }
     }
 
     private static String trimLeft(String value) {
@@ -450,6 +480,14 @@ public class Main {
         return null;
     }
 
+    private static int parseCheckedInteger(String value, int lineNumber, String description) throws AnalysisException {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException error) {
+            throw new AnalysisException(lineNumber, description + " '" + value + "' is too large");
+        }
+    }
+
     public static void main(String[] args) {
         try {
             String source = readSource(args);
@@ -458,8 +496,8 @@ public class Main {
         } catch (IllegalArgumentException error) {
             System.err.println(error.getMessage());
             System.exit(1);
-        } catch (IOException error) {
-            System.err.println("Error: could not open source file");
+        } catch (InputReadException error) {
+            System.err.println(error.getMessage());
             System.exit(1);
         } catch (AnalysisException error) {
             System.err.println("Error: " + error.getMessage());

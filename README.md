@@ -16,6 +16,15 @@ javac Main.java
 java Main < samples/valid/program_ok.simple
 ```
 
+Ou, se preferir explicitar a leitura pela entrada padrão:
+
+```bash
+javac Main.java
+java Main - < samples/valid/program_ok.simple
+```
+
+No GDB Online, finalize a entrada padrão com EOF para encerrar a leitura.
+
 ## Validar os exemplos do repositório
 
 ```bash
