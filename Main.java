@@ -7,10 +7,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Main {
     private static final Set<String> KEYWORDS = Set.of("rem", "input", "let", "print", "goto", "if", "end");
     private static final Set<String> RELATIONAL_OPERATORS = Set.of(">", ">=", "<", "<=", "==", "!=");
+    private static final Pattern SOURCE_LINE_PATTERN = Pattern.compile("^\\s*(\\d+)(?:\\s+(.*))?$");
 
     private enum TokenKind {
         KEYWORD,
@@ -24,7 +27,7 @@ public class Main {
 
     private static final class AnalysisException extends Exception {
         AnalysisException(int lineNumber, String message) {
-            super("Line " + lineNumber + ": " + message);
+            super("Linha " + lineNumber + ": " + message);
         }
     }
 
@@ -75,7 +78,7 @@ public class Main {
         Token advance() throws AnalysisException {
             Token token = peek();
             if (token == null) {
-                throw new AnalysisException(lineNumber, "unexpected end of statement");
+                throw new AnalysisException(lineNumber, "fim inesperado do comando");
             }
             position++;
             return token;
@@ -84,8 +87,8 @@ public class Main {
         Token expect(TokenKind kind, String value) throws AnalysisException {
             Token token = advance();
             if (token.kind != kind || (value != null && !value.equals(token.value))) {
-                String expected = value != null ? value : kind.name().toLowerCase();
-                throw new AnalysisException(lineNumber, "expected " + expected + ", found '" + token.value + "'");
+                String expected = value != null ? value : describeToken(kind);
+                throw new AnalysisException(lineNumber, "esperado " + expected + ", encontrado '" + token.value + "'");
             }
             return token;
         }
@@ -93,7 +96,7 @@ public class Main {
         void ensureFinished() throws AnalysisException {
             Token token = peek();
             if (token != null) {
-                throw new AnalysisException(lineNumber, "unexpected token '" + token.value + "' at end of statement");
+                throw new AnalysisException(lineNumber, "token inesperado '" + token.value + "' no fim do comando");
             }
         }
     }
@@ -121,9 +124,9 @@ public class Main {
             validateGotos();
 
             String variableList = variables.isEmpty() ? "(none)" : String.join(", ", variables);
-            return "Analysis completed successfully.\n"
-                + "Statements: " + program.size() + "\n"
-                + "Variables: " + variableList;
+            return "Análise concluída com sucesso.\n"
+                + "Instruções: " + program.size() + "\n"
+                + "Variáveis: " + variableList;
         }
 
         private void parseStatement(TokenStream stream) throws AnalysisException {
@@ -149,7 +152,7 @@ public class Main {
                 case "print":
                     variables.add(stream.expect(TokenKind.IDENT, null).value);
                     if (stream.peek() != null) {
-                        throw new AnalysisException(stream.lineNumber, "print accepts only a single variable");
+                        throw new AnalysisException(stream.lineNumber, "print aceita apenas uma variável");
                     }
                     return;
                 case "goto":
@@ -163,11 +166,11 @@ public class Main {
                 case "if":
                     parseExpression(stream);
                     if (stream.peek() != null && stream.peek().kind == TokenKind.ASSIGN) {
-                        throw new AnalysisException(stream.lineNumber, "'=' is only valid for assignment; use '==' in conditions");
+                        throw new AnalysisException(stream.lineNumber, "'=' é válido apenas para atribuição; use '==' em condições");
                     }
                     Token operator = stream.expect(TokenKind.RELOP, null);
                     if (!RELATIONAL_OPERATORS.contains(operator.value)) {
-                        throw new AnalysisException(stream.lineNumber, "invalid relational operator '" + operator.value + "'");
+                        throw new AnalysisException(stream.lineNumber, "operador relacional inválido '" + operator.value + "'");
                     }
                     parseExpression(stream);
                     stream.expect(TokenKind.KEYWORD, "goto");
@@ -182,7 +185,7 @@ public class Main {
                     stream.ensureFinished();
                     return;
                 default:
-                    throw new AnalysisException(stream.lineNumber, "unsupported command '" + command + "'");
+                    throw new AnalysisException(stream.lineNumber, "comando não suportado '" + command + "'");
             }
         }
 
@@ -214,7 +217,7 @@ public class Main {
         private void parseFactor(TokenStream stream) throws AnalysisException {
             Token token = stream.peek();
             if (token == null) {
-                throw new AnalysisException(stream.lineNumber, "expected expression");
+                throw new AnalysisException(stream.lineNumber, "esperava uma expressão");
             }
             if (token.kind == TokenKind.ARITH && (token.value.equals("+") || token.value.equals("-"))) {
                 stream.advance();
@@ -229,13 +232,13 @@ public class Main {
                 variables.add(stream.advance().value);
                 return;
             }
-            throw new AnalysisException(stream.lineNumber, "expected number or variable, found '" + token.value + "'");
+            throw new AnalysisException(stream.lineNumber, "esperava número ou variável, encontrado '" + token.value + "'");
         }
 
         private void validateGotos() throws AnalysisException {
             for (GotoTarget gotoTarget : gotoTargets) {
                 if (!lineNumbers.contains(gotoTarget.targetLine)) {
-                    throw new AnalysisException(gotoTarget.sourceLine, "goto target " + gotoTarget.targetLine + " does not exist");
+                    throw new AnalysisException(gotoTarget.sourceLine, "destino de goto " + gotoTarget.targetLine + " não existe");
                 }
             }
         }
@@ -262,25 +265,23 @@ public class Main {
                 continue;
             }
 
-            String trimmedLeft = trimLeft(rawLine);
-            int separator = firstWhitespace(trimmedLeft);
-            String lineNumberText = separator == -1 ? trimmedLeft : trimmedLeft.substring(0, separator);
-
-            if (!isDigitsOnly(lineNumberText)) {
-                throw new AnalysisException(physicalLine + 1, "statement must start with a numeric line number");
+            Matcher matcher = SOURCE_LINE_PATTERN.matcher(rawLine);
+            if (!matcher.matches()) {
+                throw new AnalysisException(physicalLine + 1, "cada instrução deve começar com um número de linha");
             }
 
+            String lineNumberText = matcher.group(1);
             int lineNumber = parseCheckedInteger(lineNumberText, physicalLine + 1, "line number");
             if (previousLineNumber != null && lineNumber <= previousLineNumber) {
                 throw new AnalysisException(
                     physicalLine + 1,
-                    "line number " + lineNumber + " must be strictly increasing (previous was " + previousLineNumber + ")"
+                    "número da linha " + lineNumber + " deve estar em ordem estritamente crescente (anterior foi " + previousLineNumber + ")"
                 );
             }
 
-            String statement = separator == -1 ? "" : trimmedLeft.substring(separator).trim();
+            String statement = matcher.group(2) == null ? "" : matcher.group(2).trim();
             if (statement.isEmpty()) {
-                throw new AnalysisException(lineNumber, "missing command after line number");
+                throw new AnalysisException(lineNumber, "comando ausente após o número da linha");
             }
 
             lines.add(new SourceLine(lineNumber, statement));
@@ -288,43 +289,43 @@ public class Main {
         }
 
         if (lines.isEmpty()) {
-            throw new AnalysisException(0, "source file is empty");
+            throw new AnalysisException(0, "o arquivo fonte está vazio");
         }
 
         return lines;
     }
 
     private static List<Token> tokenizeStatement(SourceLine sourceLine) throws AnalysisException {
-        String text = trimLeft(sourceLine.text);
+        String text = sourceLine.text.stripLeading();
         int lineNumber = sourceLine.lineNumber;
 
         int firstWordEnd = 0;
         while (firstWordEnd < text.length() && Character.isLetter(text.charAt(firstWordEnd))) {
             char current = text.charAt(firstWordEnd);
             if (Character.isUpperCase(current)) {
-                throw new AnalysisException(lineNumber, "uppercase letters are only allowed inside rem comments");
+                throw new AnalysisException(lineNumber, "letras maiúsculas são permitidas apenas em comentários rem");
             }
             firstWordEnd++;
         }
 
         String command = text.substring(0, firstWordEnd);
         if (command.isEmpty()) {
-            throw new AnalysisException(lineNumber, "missing command");
+            throw new AnalysisException(lineNumber, "comando ausente");
         }
         String attachedKeyword = findAttachedKeyword(command);
         if (attachedKeyword != null) {
-            throw new AnalysisException(lineNumber, "expected whitespace after command '" + attachedKeyword + "'");
+            throw new AnalysisException(lineNumber, "esperado espaço em branco após o comando '" + attachedKeyword + "'");
         }
         if (!KEYWORDS.contains(command)) {
-            throw new AnalysisException(lineNumber, "unknown command '" + command + "'");
+            throw new AnalysisException(lineNumber, "comando desconhecido '" + command + "'");
         }
         if (command.equals("rem")) {
             if (firstWordEnd < text.length() && Character.isLetterOrDigit(text.charAt(firstWordEnd))) {
                 char next = text.charAt(firstWordEnd);
                 if (Character.isUpperCase(next)) {
-                    throw new AnalysisException(lineNumber, "uppercase letters are only allowed inside rem comments");
+                    throw new AnalysisException(lineNumber, "letras maiúsculas são permitidas apenas em comentários rem");
                 }
-                throw new AnalysisException(lineNumber, "expected whitespace after command '" + command + "'");
+                throw new AnalysisException(lineNumber, "esperado espaço em branco após o comando '" + command + "'");
             }
             String comment = firstWordEnd >= text.length() ? "" : text.substring(firstWordEnd).stripLeading();
             if (comment.isEmpty()) {
@@ -335,9 +336,9 @@ public class Main {
         if (firstWordEnd < text.length() && Character.isLetterOrDigit(text.charAt(firstWordEnd))) {
             char next = text.charAt(firstWordEnd);
             if (Character.isUpperCase(next)) {
-                throw new AnalysisException(lineNumber, "uppercase letters are only allowed inside rem comments");
+                throw new AnalysisException(lineNumber, "letras maiúsculas são permitidas apenas em comentários rem");
             }
-            throw new AnalysisException(lineNumber, "expected whitespace after command '" + command + "'");
+            throw new AnalysisException(lineNumber, "esperado espaço em branco após o comando '" + command + "'");
         }
 
         List<Token> tokens = new ArrayList<>();
@@ -352,7 +353,7 @@ public class Main {
                 continue;
             }
             if (Character.isUpperCase(current)) {
-                throw new AnalysisException(lineNumber, "uppercase letters are only allowed inside rem comments");
+                throw new AnalysisException(lineNumber, "letras maiúsculas são permitidas apenas em comentários rem");
             }
             if (Character.isDigit(current)) {
                 int start = index;
@@ -375,7 +376,7 @@ public class Main {
                     String invalidIdentifier = text.substring(start, index);
                     throw new AnalysisException(
                         lineNumber,
-                        "invalid identifier '" + invalidIdentifier + "' (variables must be a single lowercase letter)"
+                        "identificador inválido '" + invalidIdentifier + "' (variáveis devem ter apenas uma letra minúscula)"
                     );
                 }
                 if (KEYWORDS.contains(word)) {
@@ -385,14 +386,14 @@ public class Main {
                 if (word.length() != 1) {
                     throw new AnalysisException(
                         lineNumber,
-                        "invalid identifier '" + word + "' (variables must be a single lowercase letter)"
+                        "identificador inválido '" + word + "' (variáveis devem ter apenas uma letra minúscula)"
                     );
                 }
                 tokens.add(new Token(TokenKind.IDENT, word));
                 continue;
             }
             if (current == '(' || current == ')') {
-                throw new AnalysisException(lineNumber, "parentheses are not allowed in SIMPLE expressions");
+                throw new AnalysisException(lineNumber, "parênteses não são permitidos em expressões SIMPLE");
             }
             if (current == '+' || current == '-' || current == '*' || current == '/' || current == '%') {
                 tokens.add(new Token(TokenKind.ARITH, Character.toString(current)));
@@ -423,9 +424,9 @@ public class Main {
                     index++;
                     continue;
                 }
-                throw new AnalysisException(lineNumber, "invalid token starting at '" + text.substring(index) + "'");
+                throw new AnalysisException(lineNumber, "token inválido a partir de '" + text.substring(index) + "'");
             }
-            throw new AnalysisException(lineNumber, "invalid character '" + current + "'");
+            throw new AnalysisException(lineNumber, "caractere inválido '" + current + "'");
         }
 
         return tokens;
@@ -433,49 +434,20 @@ public class Main {
 
     private static String readSource(String[] args) throws InputReadException {
         if (args.length > 1) {
-            throw new IllegalArgumentException("Usage: java Main [source.simple]");
+            throw new IllegalArgumentException("Uso: java Main [arquivo.simple]");
         }
         if (args.length == 1 && !args[0].equals("-")) {
             try {
                 return Files.readString(Path.of(args[0]), StandardCharsets.UTF_8);
             } catch (IOException error) {
-                throw new InputReadException("Error: could not open '" + args[0] + "'", error);
+                throw new InputReadException("Erro: não foi possível abrir '" + args[0] + "'", error);
             }
         }
         try {
             return new String(System.in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException error) {
-            throw new InputReadException("Error: could not read standard input", error);
+            throw new InputReadException("Erro: não foi possível ler a entrada padrão", error);
         }
-    }
-
-    private static String trimLeft(String value) {
-        int index = 0;
-        while (index < value.length() && Character.isWhitespace(value.charAt(index))) {
-            index++;
-        }
-        return value.substring(index);
-    }
-
-    private static int firstWhitespace(String value) {
-        for (int index = 0; index < value.length(); index++) {
-            if (Character.isWhitespace(value.charAt(index))) {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private static boolean isDigitsOnly(String value) {
-        if (value.isEmpty()) {
-            return false;
-        }
-        for (int index = 0; index < value.length(); index++) {
-            if (!Character.isDigit(value.charAt(index))) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private static String findAttachedKeyword(String command) {
@@ -491,8 +463,39 @@ public class Main {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException error) {
-            throw new AnalysisException(lineNumber, description + " '" + value + "' is too large");
+            throw new AnalysisException(lineNumber, describeNumericField(description) + " '" + value + "' é grande demais");
         }
+    }
+
+    private static String describeToken(TokenKind kind) {
+        switch (kind) {
+            case KEYWORD:
+                return "comando";
+            case COMMENT:
+                return "comentário";
+            case IDENT:
+                return "identificador";
+            case NUMBER:
+                return "número";
+            case ASSIGN:
+                return "=";
+            case ARITH:
+                return "operador aritmético";
+            case RELOP:
+                return "operador relacional";
+            default:
+                return "token";
+        }
+    }
+
+    private static String describeNumericField(String description) {
+        if ("line number".equals(description)) {
+            return "número da linha";
+        }
+        if ("goto target".equals(description)) {
+            return "destino de goto";
+        }
+        return description;
     }
 
     public static void main(String[] args) {
@@ -507,7 +510,7 @@ public class Main {
             System.err.println(error.getMessage());
             System.exit(1);
         } catch (AnalysisException error) {
-            System.err.println("Error: " + error.getMessage());
+            System.err.println("Erro: " + error.getMessage());
             System.exit(1);
         }
     }

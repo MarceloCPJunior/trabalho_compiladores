@@ -46,7 +46,7 @@ chmod +x validate_samples.sh
 ## Resultado esperado
 
 - em programas válidos, o analisador informa sucesso, quantidade de instruções e variáveis encontradas;
-- em programas inválidos, o analisador informa a linha e o motivo do erro.
+- em programas inválidos, o analisador informa a linha e o motivo do erro, sempre em português brasileiro.
 
 ## Casos de teste incluídos
 

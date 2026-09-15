@@ -12,7 +12,7 @@ for sample in samples/invalid/*.simple; do
   output_file="$(mktemp)"
   trap 'rm -f "$output_file"' EXIT
   if java Main "$sample" >"$output_file" 2>&1; then
-    echo "Expected failure for invalid sample: $sample" >&2
+    echo "Falha esperada não ocorreu para o exemplo inválido: $sample" >&2
     exit 1
   fi
   diff -u "${sample%.simple}.expected" "$output_file"
@@ -23,8 +23,8 @@ done
 missing_output="$(mktemp)"
 trap 'rm -f "$missing_output"' EXIT
 java Main does-not-exist.simple >"$missing_output" 2>&1 || true
-grep -F "Error: could not open 'does-not-exist.simple'" "$missing_output"
+grep -F "Erro: não foi possível abrir 'does-not-exist.simple'" "$missing_output"
 rm -f "$missing_output"
 trap - EXIT
 
-echo "All sample validations passed."
+echo "Todas as validações dos exemplos passaram."
